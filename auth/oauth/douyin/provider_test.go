@@ -3,6 +3,7 @@ package douyin
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -86,6 +87,45 @@ func TestAuthenticateRejectsSubjectMismatch(t *testing.T) {
 func TestNewRequiresConfiguration(t *testing.T) {
 	if _, err := New(Config{}, nil); !errors.Is(err, oauth.ErrNotConfigured) {
 		t.Fatalf("expected configuration error, got %v", err)
+	}
+}
+
+func TestAuthenticateRedactsTransportError(t *testing.T) {
+	const (
+		secret = "provider-secret-must-not-leak"
+		code   = "authorization-code-must-not-leak"
+	)
+	client := &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		return nil, fmt.Errorf("sensitive transport error: %s %s", secret, code)
+	})}
+	provider, err := New(Config{ClientKey: "client-key", ClientSecret: secret}, client)
+	if err != nil {
+		t.Fatalf("new provider: %v", err)
+	}
+
+	_, err = provider.Authenticate(context.Background(), oauth.Credential{Code: code})
+	if !errors.Is(err, oauth.ErrProviderUnavailable) {
+		t.Fatalf("expected provider-unavailable error, got %v", err)
+	}
+	for _, sensitive := range []string{secret, code} {
+		if strings.Contains(err.Error(), sensitive) {
+			t.Fatalf("error leaked credential %q: %v", sensitive, err)
+		}
+	}
+}
+
+func TestAuthenticateRejectsOversizedResponse(t *testing.T) {
+	client := &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		return jsonResponse(strings.Repeat("x", maxResponseBytes+1)), nil
+	})}
+	provider, err := New(Config{ClientKey: "client-key", ClientSecret: "secret"}, client)
+	if err != nil {
+		t.Fatalf("new provider: %v", err)
+	}
+
+	_, err = provider.Authenticate(context.Background(), oauth.Credential{Code: "auth-code"})
+	if !errors.Is(err, oauth.ErrInvalidResponse) {
+		t.Fatalf("expected invalid-response error, got %v", err)
 	}
 }
 

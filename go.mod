@@ -1,6 +1,6 @@
 module github.com/time-origin/warpin-go-common
 
-go 1.24.2
+go 1.27.1
 
 require (
 	cloud.google.com/go/storage v1.57.2

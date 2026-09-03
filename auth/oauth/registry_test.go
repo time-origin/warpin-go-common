@@ -59,3 +59,14 @@ func TestRegistryRejectsUnknownProviderAndEmptyCode(t *testing.T) {
 		t.Fatalf("expected invalid-credential error, got %v", err)
 	}
 }
+
+func TestRegistryRejectsIncompleteIdentity(t *testing.T) {
+	registry, err := NewRegistry(stubProvider{key: "wechat"})
+	if err != nil {
+		t.Fatalf("new registry: %v", err)
+	}
+
+	if _, err := registry.Authenticate(context.Background(), "wechat", Credential{Code: "code"}); !errors.Is(err, ErrInvalidResponse) {
+		t.Fatalf("expected invalid-response error, got %v", err)
+	}
+}
