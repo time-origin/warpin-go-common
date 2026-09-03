@@ -23,9 +23,11 @@ const (
 )
 
 type Config struct {
-	ClientKey    string        `mapstructure:"client_key"`
-	ClientSecret string        `mapstructure:"client_secret"`
-	Timeout      time.Duration `mapstructure:"timeout"`
+	// ClientKey and ClientSecret are supplied by the consuming application.
+	// This package never loads configuration or credentials from the environment.
+	ClientKey    string
+	ClientSecret string
+	Timeout      time.Duration
 }
 
 type Provider struct {

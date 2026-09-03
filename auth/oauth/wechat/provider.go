@@ -24,9 +24,11 @@ const (
 )
 
 type Config struct {
-	AppID     string        `mapstructure:"app_id"`
-	AppSecret string        `mapstructure:"app_secret"`
-	Timeout   time.Duration `mapstructure:"timeout"`
+	// AppID and AppSecret are supplied by the consuming application.
+	// This package never loads configuration or credentials from the environment.
+	AppID     string
+	AppSecret string
+	Timeout   time.Duration
 }
 
 type Provider struct {
