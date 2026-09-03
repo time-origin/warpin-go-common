@@ -1,5 +1,11 @@
 package errx
 
+import (
+	"fmt"
+	"strings"
+	"sync"
+)
+
 // ErrCode defines a type for custom error codes.
 type ErrCode int
 
@@ -15,9 +21,8 @@ const (
 	ServerCommonError  ErrCode = 500 // 服务器通用错误
 	ServiceUnavailable ErrCode = 503 // 服务不可用
 
-	// Workflow specific error codes
-	RecordNotFound        ErrCode = 100001 // 记录未找到
-	StatusTransitionError ErrCode = 100002 // 状态转换错误
+	// Data access error codes
+	RecordNotFound ErrCode = 100001 // 记录未找到
 
 	// Specific error codes from errMsg.go
 	TokenExpireError          ErrCode = 10001 // Token expired, please log in again
@@ -35,69 +40,61 @@ const (
 	SecurityError             ErrCode = 10013
 	PermissionDenied          ErrCode = 10014 // 权限不足
 
-	// System module
-	SysEmpNotExist ErrCode = 20001 // Employee does not exist
-
-	// User module
-	UserExist ErrCode = 30001 // User already exists
-
-	// Business specific error codes (VoiceCraft)
-	QueueFull           ErrCode = 300001 // 排队人数过多，暂时熔断
-	BalanceInsufficient ErrCode = 300002 // 积分不足
-	PromptSensitive     ErrCode = 400001 // 包含敏感词
-	ProviderError       ErrCode = 500001 // 上游 API 挂了
 )
 
-var message map[ErrCode]string
+var (
+	messageMu sync.RWMutex
+	message   = map[ErrCode]string{
+		Success:                   "SUCCESS",
+		ServerCommonError:         "系统开小差啦，请稍后尝试",
+		RequestParamError:         "请求内容无效",
+		Unauthorized:              "请先登录",
+		Forbidden:                 "无权执行此操作",
+		NotFound:                  "请求的内容不存在",
+		ServiceUnavailable:        "服务暂时不可用，请稍后再试",
+		RecordNotFound:            "请求的记录不存在",
+		TokenExpireError:          "登录状态已过期，请重新登录",
+		TokenGenerateError:        "登录凭证生成失败",
+		DbError:                   "系统开小差啦，请稍后尝试",
+		DbUpdateAffectedZeroError: "数据未发生变更",
+		NotExist:                  "请求的数据不存在",
+		IncorrectPwd:              "账号或密码错误",
+		IncorrectAccount:          "用户不存在",
+		IncorrectVerifyCode:       "验证码错误",
+		UploadFileEmpty:           "上传文件不能为空",
+		FileNotExist:              "文件不存在",
+		CascadeDataExist:          "存在关联数据，暂时无法操作",
+		IncorrectConfig:           "系统配置错误",
+		SecurityError:             "安全校验失败",
+		PermissionDenied:          "无权执行此操作",
+	}
+)
 
-func init() {
-	message = make(map[ErrCode]string)
-	// Global error codes
-	message[Success] = "SUCCESS"
-	message[ServerCommonError] = "系统开小差啦，请稍后尝试"
-	message[RequestParamError] = "请求参数错误"
-	message[InvalidRequest] = "请求参数无效"
-	message[BadRequest] = "请求内容无效"
-	message[Unauthorized] = "请先登录"
-	message[Forbidden] = "无权执行此操作"
-	message[NotFound] = "请求的内容不存在"
-	message[ServiceUnavailable] = "服务暂时不可用，请稍后再试"
+// RegisterMessages adds application-owned error messages to the shared catalog.
+// Registration is atomic and rejects codes that are already defined.
+func RegisterMessages(messages map[ErrCode]string) error {
+	messageMu.Lock()
+	defer messageMu.Unlock()
 
-	// Workflow specific error codes
-	message[RecordNotFound] = "请求的记录不存在"
-	message[StatusTransitionError] = "当前状态不允许此操作"
-
-	// Specific error codes
-	message[TokenExpireError] = "登录状态已过期，请重新登录"
-	message[TokenGenerateError] = "登录凭证生成失败"
-	message[DbError] = "系统开小差啦，请稍后尝试"
-	message[DbUpdateAffectedZeroError] = "数据未发生变更"
-	message[NotExist] = "请求的数据不存在"
-	message[IncorrectPwd] = "账号或密码错误"
-	message[IncorrectAccount] = "用户不存在"
-	message[IncorrectVerifyCode] = "验证码错误"
-	message[UploadFileEmpty] = "上传文件不能为空"
-	message[FileNotExist] = "文件不存在"
-	message[CascadeDataExist] = "存在关联数据，暂时无法操作"
-	message[IncorrectConfig] = "系统配置错误"
-	message[SecurityError] = "安全校验失败"
-	message[PermissionDenied] = "无权执行此操作"
-
-	// System module
-	message[SysEmpNotExist] = "员工不存在"
-
-	// User module
-	message[UserExist] = "用户已存在"
-
-	// Business specific error codes (VoiceCraft)
-	message[QueueFull] = "当前排队人数较多，请稍后再试"
-	message[BalanceInsufficient] = "能量不足"
-	message[PromptSensitive] = "创作内容包含不适宜信息，请修改后重试"
-	message[ProviderError] = "创作服务暂时不可用，请稍后再试"
+	for code, msg := range messages {
+		if strings.TrimSpace(msg) == "" {
+			return fmt.Errorf("error code %d has an empty message", code)
+		}
+		if _, exists := message[code]; exists {
+			return fmt.Errorf("error code %d is already registered", code)
+		}
+	}
+	for code, msg := range messages {
+		message[code] = msg
+	}
+	return nil
 }
 
 // MapErrMsg maps an ErrCode to its corresponding message.
 func MapErrMsg(errCode ErrCode) string {
+	messageMu.RLock()
+	defer messageMu.RUnlock()
+
 	if msg, ok := message[errCode]; ok {
 		return msg
 	} else {
@@ -107,6 +104,9 @@ func MapErrMsg(errCode ErrCode) string {
 
 // IsCodeErr checks if an ErrCode is defined in the message map.
 func IsCodeErr(errCode ErrCode) bool {
+	messageMu.RLock()
+	defer messageMu.RUnlock()
+
 	_, ok := message[errCode]
 	return ok
 }
