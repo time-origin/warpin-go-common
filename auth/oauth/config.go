@@ -15,7 +15,8 @@ type ProviderConfig struct {
 	Scopes       []string `mapstructure:"scopes"`
 }
 
-// Config groups the providers currently implemented by this module.
+// Config groups the legacy Google and GitHub provider configuration.
+// New applications should aggregate each provider package's typed Config.
 type Config struct {
 	Google ProviderConfig `mapstructure:"google"`
 	GitHub ProviderConfig `mapstructure:"github"`

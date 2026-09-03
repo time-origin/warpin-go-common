@@ -8,7 +8,8 @@ pin and upgrade one version.
 
 ## Packages
 
-- `auth`: JWT, cookie sessions, and OAuth provider primitives.
+- `auth`: JWT, cookie sessions, OAuth provider primitives, and WeChat,
+  Douyin, and Xiaohongshu identity providers.
 - `database`: reusable GORM connection, repository, query, and transaction helpers.
 - `errors`: stable business-code error primitives.
 - `http`: unified result and HTTP response helpers.
