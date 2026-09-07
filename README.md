@@ -12,7 +12,9 @@ pin and upgrade one version.
   Douyin, and Xiaohongshu identity providers.
 - `database`: reusable GORM connection, repository, query, and transaction helpers.
 - `errors`: stable business-code error primitives.
-- `http`: unified result and HTTP response helpers.
+- `http/result`: framework-independent result and error mapping primitives.
+- `http/response`: standard `net/http` response helpers.
+- `http/hertz`: native CloudWeGo Hertz transport adapters.
 - `mail`: SMTP, AWS SES, and Aliyun DirectMail adapters.
 - `payment/ysepay`: Ysepay Xiao-Y aggregated cashier client for Alipay and
   WeChat Mini Program cashier APP flows.
@@ -22,6 +24,28 @@ pin and upgrade one version.
 
 Application models, schema migrations, seed data, route policy, and other
 service-specific behavior do not belong in this repository.
+
+## HTTP transport boundaries
+
+Core packages, including `errors`, `auth`, and `http/result`, must not import a
+web framework. Standard HTTP helpers belong in `http/response`; Hertz-specific
+code belongs under `http/hertz`. Business domain packages do not belong in this
+module.
+
+Existing services can keep using the compatible `http/response` API without
+`go-chi/render`. New Hertz services should use `http/hertz` directly instead of
+routing their high-frequency paths through a `net/http` adaptor. Shared
+middleware logic should remain framework-independent, with transport-specific
+wrappers added only when a concrete caller needs them.
+
+Services that own a different public response contract should use
+`http/hertz/response.JSON` with their own value and status, or `NoContent` for
+an empty 204 response. The `Success` and `Error` helpers retain the legacy
+`code/data/count/msg` envelope and HTTP 200 behavior for existing consumers.
+
+With Go 1.27, consumers can build with `-tags=stdjson,gjson` to select Hertz's
+portable JSON implementations; the pinned Sonic version otherwise reports a
+compatibility warning and falls back to standard JSON encoding.
 
 ## OAuth dependency injection
 
