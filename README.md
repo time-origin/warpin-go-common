@@ -38,6 +38,15 @@ routing their high-frequency paths through a `net/http` adaptor. Shared
 middleware logic should remain framework-independent, with transport-specific
 wrappers added only when a concrete caller needs them.
 
+Services that own a different public response contract should use
+`http/hertz/response.JSON` with their own value and status, or `NoContent` for
+an empty 204 response. The `Success` and `Error` helpers retain the legacy
+`code/data/count/msg` envelope and HTTP 200 behavior for existing consumers.
+
+With Go 1.27, consumers can build with `-tags=stdjson,gjson` to select Hertz's
+portable JSON implementations; the pinned Sonic version otherwise reports a
+compatibility warning and falls back to standard JSON encoding.
+
 ## OAuth dependency injection
 
 OAuth providers do not read environment variables or configuration files.

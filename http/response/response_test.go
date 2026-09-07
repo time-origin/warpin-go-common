@@ -61,3 +61,29 @@ func TestNoContent(t *testing.T) {
 		t.Fatalf("body = %q", recorder.Body.String())
 	}
 }
+
+type failingWriter struct {
+	header   http.Header
+	statuses []int
+	writes   int
+	err      error
+}
+
+func (w *failingWriter) Header() http.Header       { return w.header }
+func (w *failingWriter) WriteHeader(status int)    { w.statuses = append(w.statuses, status) }
+func (w *failingWriter) Write([]byte) (int, error) { w.writes++; return 0, w.err }
+
+func TestJSONDoesNotWriteAgainAfterNetworkFailure(t *testing.T) {
+	w := &failingWriter{header: make(http.Header), err: errors.New("connection closed")}
+	JSON(w, httptest.NewRequest(http.MethodGet, "/", nil), &resx.Result{})
+	if len(w.statuses) != 1 || w.statuses[0] != http.StatusOK || w.writes != 1 {
+		t.Fatalf("response written again after commit: statuses=%v writes=%d", w.statuses, w.writes)
+	}
+}
+
+func TestWriteJSONReportsNetworkFailure(t *testing.T) {
+	w := &failingWriter{header: make(http.Header), err: errors.New("connection closed")}
+	if err := WriteJSON(w, http.StatusOK, "data"); !errors.Is(err, w.err) {
+		t.Fatalf("write error lost: %v", err)
+	}
+}

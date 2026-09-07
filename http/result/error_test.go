@@ -9,6 +9,14 @@ import (
 )
 
 func TestNewErrorResult(t *testing.T) {
+	t.Run("typed nil error", func(t *testing.T) {
+		var err *errx.CodeError
+		got := NewErrorResult(err)
+		if got.Code != errx.ServerCommonError || got.Msg != errx.MapErrMsg(errx.ServerCommonError) {
+			t.Fatalf("unexpected result: %#v", got)
+		}
+	})
+
 	t.Run("business error", func(t *testing.T) {
 		got := NewErrorResult(fmt.Errorf("authenticate: %w", errx.NewWithMsg(errx.Unauthorized, "token expired")))
 		if got.Code != errx.Unauthorized || got.Msg != "token expired" {

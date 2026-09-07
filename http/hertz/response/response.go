@@ -25,5 +25,6 @@ func Error(c *app.RequestContext, err error) {
 
 // NoContent writes a 204 response without a body.
 func NoContent(c *app.RequestContext) {
+	c.Response.ResetBody()
 	c.Status(consts.StatusNoContent)
 }

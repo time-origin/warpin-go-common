@@ -12,22 +12,29 @@ import (
 // The HTTP status is always 200 OK. The request parameter remains for
 // compatibility with existing callers.
 func JSON(w http.ResponseWriter, _ *http.Request, result *resx.Result) {
-	if err := WriteJSON(w, http.StatusOK, result); err != nil {
+	if committed, err := writeJSON(w, http.StatusOK, result); err != nil && !committed {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 	}
 }
 
 // WriteJSON writes any JSON response using only the standard net/http API.
 func WriteJSON(w http.ResponseWriter, status int, value any) error {
+	_, err := writeJSON(w, status, value)
+	return err
+}
+
+// writeJSON reports whether headers were committed, so callers never attempt a
+// second response after a network write failure.
+func writeJSON(w http.ResponseWriter, status int, value any) (bool, error) {
 	var body bytes.Buffer
 	if err := json.NewEncoder(&body).Encode(value); err != nil {
-		return err
+		return false, err
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
 	_, err := w.Write(body.Bytes())
-	return err
+	return true, err
 }
 
 // Error intelligently handles an error, creates a standard failure result, and sends it as a JSON response.

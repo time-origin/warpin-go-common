@@ -44,6 +44,7 @@ func TestUnexpectedErrorDoesNotLeakInternalMessage(t *testing.T) {
 
 func TestNoContent(t *testing.T) {
 	c := app.NewContext(0)
+	c.Response.SetBodyString("previous response body")
 
 	NoContent(c)
 
@@ -52,5 +53,23 @@ func TestNoContent(t *testing.T) {
 	}
 	if len(c.Response.Body()) != 0 {
 		t.Fatalf("body = %q", c.Response.Body())
+	}
+}
+
+func TestJSONPreservesApplicationContract(t *testing.T) {
+	c := app.NewContext(0)
+	payload := map[string]any{"code": 10000003, "message": "forbidden"}
+
+	JSON(c, consts.StatusForbidden, payload)
+
+	if c.Response.StatusCode() != consts.StatusForbidden {
+		t.Fatalf("status = %d", c.Response.StatusCode())
+	}
+	var got map[string]any
+	if err := json.Unmarshal(c.Response.Body(), &got); err != nil {
+		t.Fatal(err)
+	}
+	if got["code"] != float64(10000003) || got["message"] != "forbidden" || len(got) != 2 {
+		t.Fatalf("application contract changed: %#v", got)
 	}
 }

@@ -10,7 +10,7 @@ import (
 // hides details from unexpected internal errors.
 func NewErrorResult(err error) *Result {
 	var codeErr *errx.CodeError
-	if errors.As(err, &codeErr) {
+	if errors.As(err, &codeErr) && codeErr != nil {
 		return NewFailResult(codeErr.Code, codeErr.Message)
 	}
 	return NewFailResult(errx.ServerCommonError)
