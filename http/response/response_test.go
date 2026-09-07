@@ -3,6 +3,7 @@ package response
 import (
 	"encoding/json"
 	"errors"
+	"net/http"
 	"net/http/httptest"
 	"testing"
 
@@ -21,5 +22,42 @@ func TestUnexpectedErrorDoesNotLeakInternalMessage(t *testing.T) {
 	}
 	if result.Msg != "系统开小差啦，请稍后尝试" {
 		t.Fatalf("unexpected public message: %q", result.Msg)
+	}
+}
+
+func TestWriteJSON(t *testing.T) {
+	recorder := httptest.NewRecorder()
+
+	if err := WriteJSON(recorder, http.StatusCreated, map[string]string{"id": "agent-1"}); err != nil {
+		t.Fatalf("write response: %v", err)
+	}
+	if recorder.Code != http.StatusCreated {
+		t.Fatalf("status = %d", recorder.Code)
+	}
+	if got := recorder.Header().Get("Content-Type"); got != "application/json; charset=utf-8" {
+		t.Fatalf("content type = %q", got)
+	}
+}
+
+func TestJSONEncodingError(t *testing.T) {
+	recorder := httptest.NewRecorder()
+
+	JSON(recorder, httptest.NewRequest(http.MethodGet, "/", nil), &resx.Result{Data: make(chan int)})
+
+	if recorder.Code != http.StatusInternalServerError {
+		t.Fatalf("status = %d", recorder.Code)
+	}
+}
+
+func TestNoContent(t *testing.T) {
+	recorder := httptest.NewRecorder()
+
+	NoContent(recorder, httptest.NewRequest(http.MethodGet, "/", nil))
+
+	if recorder.Code != http.StatusNoContent {
+		t.Fatalf("status = %d", recorder.Code)
+	}
+	if recorder.Body.Len() != 0 {
+		t.Fatalf("body = %q", recorder.Body.String())
 	}
 }

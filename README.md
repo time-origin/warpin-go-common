@@ -12,7 +12,9 @@ pin and upgrade one version.
   Douyin, and Xiaohongshu identity providers.
 - `database`: reusable GORM connection, repository, query, and transaction helpers.
 - `errors`: stable business-code error primitives.
-- `http`: unified result and HTTP response helpers.
+- `http/result`: framework-independent result and error mapping primitives.
+- `http/response`: standard `net/http` response helpers.
+- `http/hertz`: native CloudWeGo Hertz transport adapters.
 - `mail`: SMTP, AWS SES, and Aliyun DirectMail adapters.
 - `storage`: object-storage adapters.
 - `types`: shared persistence types.
@@ -20,6 +22,19 @@ pin and upgrade one version.
 
 Application models, schema migrations, seed data, route policy, and other
 service-specific behavior do not belong in this repository.
+
+## HTTP transport boundaries
+
+Core packages, including `errors`, `auth`, and `http/result`, must not import a
+web framework. Standard HTTP helpers belong in `http/response`; Hertz-specific
+code belongs under `http/hertz`. Business domain packages do not belong in this
+module.
+
+Existing services can keep using the compatible `http/response` API without
+`go-chi/render`. New Hertz services should use `http/hertz` directly instead of
+routing their high-frequency paths through a `net/http` adaptor. Shared
+middleware logic should remain framework-independent, with transport-specific
+wrappers added only when a concrete caller needs them.
 
 ## OAuth dependency injection
 
