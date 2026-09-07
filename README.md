@@ -14,6 +14,8 @@ pin and upgrade one version.
 - `errors`: stable business-code error primitives.
 - `http`: unified result and HTTP response helpers.
 - `mail`: SMTP, AWS SES, and Aliyun DirectMail adapters.
+- `payment/ysepay`: Ysepay Xiao-Y aggregated cashier client for Alipay and
+  WeChat Mini Program cashier APP flows.
 - `storage`: object-storage adapters.
 - `types`: shared persistence types.
 - `utils`: focused utility packages migrated from existing Warpin services.
@@ -50,6 +52,70 @@ identity, err := registry.Authenticate(ctx, "wechat", oauth.Credential{
 The service owns provider enablement, secret storage, account binding,
 persistence, and business token issuance. The common module returns only a
 normalized third-party identity.
+
+## Ysepay dependency injection
+
+`payment/ysepay` implements cashier pre-order, signed payment notification
+parsing, trade query, refund acceptance, and refund query. It deliberately
+does not implement merchant onboarding, order persistence, callback routes,
+idempotency, or mobile SDK invocation.
+
+The consuming service must load the initiator's PFX, its password, the Ysepay
+public certificate, and merchant identities from its Secret system. The PFX
+belongs to the initiator (`certId`); each payment request separately supplies
+the contracted Ysepay secondary-merchant payee (`mercId`) and its approved
+business code.
+
+```go
+signingPFX, err := os.ReadFile(appConfig.Ysepay.SigningPFXSecretPath)
+if err != nil {
+	return err
+}
+yseCertificate, err := os.ReadFile(appConfig.Ysepay.PublicCertificatePath)
+if err != nil {
+	return err
+}
+
+client, err := ysepay.NewClient(ysepay.Config{
+	Environment:                ysepay.EnvironmentProduction,
+	InitiatorMerchantID:        appConfig.Ysepay.InitiatorMerchantID,
+	SigningPKCS12:              signingPFX,
+	SigningCertificatePassword: secretStore.YsepayPFXPassword(),
+	YsePublicCertificate:       yseCertificate,
+})
+if err != nil {
+	return err
+}
+
+order, err := client.CreateCashierOrder(ctx, ysepay.CreateCashierOrderRequest{
+	OrderID:             businessOrder.PaymentNumber,
+	PayeeMerchantID:     terminalMerchant.YsepayMerchantID,
+	BusinessCode:        ysepay.BusinessCodeStandard,
+	ShopDate:            businessOrder.ShopDate,
+	AmountFen:           businessOrder.AmountFen,
+	PaymentValidMinutes: 30,
+	BackURL:             appConfig.PublicBaseURL + "/payment/ysepay/notify",
+	PayMode:             ysepay.PaymentModeAlipay,
+})
+```
+
+Use `PaymentModeAlipay` (`26`) for the aggregated cashier Alipay WebView flow and
+`PaymentModeWeChatMiniProgram` (`29`) for the WeChat cashier Mini Program.
+The create-order response may contain `PayURL`, `EncryptedData`, or both;
+for WeChat, pass the verified `BusinessData` to the mobile integration as
+described by Ysepay. `CashierAppID` is returned when present but is not required.
+Only a verified server notification or a verified query result can finalize a
+payment. A mobile return URL is never proof of payment.
+
+The consuming business is already contracted as a Ysepay secondary merchant.
+Underlying WeChat and Alipay transaction merchant numbers belong to Ysepay;
+the business does not apply for, report, or configure its own channel merchant
+numbers in this client or its server environment.
+
+Never commit PFX files, certificate passwords, real merchant numbers, AppIDs,
+callback URLs, signatures, or encrypted gateway payloads to this repository.
+The package accepts certificate bytes only and does not read fixed paths,
+environment variables, or configuration services.
 
 ## Compatibility
 
