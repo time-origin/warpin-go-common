@@ -67,9 +67,34 @@ func TestBDD_PAY_001To003_CreateCashierOrderMapsBothIdentitiesAndChannels(t *tes
 				t.Fatalf("version/payMode = %q/%v", wire["version"], business["payMode"])
 			}
 			if _, exists := business["appType"]; exists {
-				t.Fatal("undocumented appType must not be sent")
+				t.Fatal("unset appType must not be sent")
+			}
+			if _, exists := business["h5Join"]; exists {
+				t.Fatal("unset h5Join must not be sent")
 			}
 		})
+	}
+}
+
+func TestCreateCashierOrderMapsConfiguredH5Routing(t *testing.T) {
+	t.Parallel()
+	client, gateway := newGatewayClient(t, func(string, map[string]any) (string, any) {
+		return "0", map[string]any{
+			"amount": "101", "mercId": "PAYEE_TEST", "orderId": "ORDER_20260903_001",
+			"payUrl": "https://cashier.example.test/order",
+		}
+	})
+	request := validCreateRequest(PaymentModeAlipay)
+	request.H5Join = "provider-h5-routing"
+	request.AppType = "provider-app-type"
+	if _, err := client.CreateCashierOrder(context.Background(), request); err != nil {
+		t.Fatalf("CreateCashierOrder() error = %v", err)
+	}
+	gateway.mu.Lock()
+	business := gateway.businesses[0]
+	gateway.mu.Unlock()
+	if business["h5Join"] != request.H5Join || business["appType"] != request.AppType {
+		t.Fatalf("H5 routing = %v/%v", business["h5Join"], business["appType"])
 	}
 }
 
@@ -162,6 +187,8 @@ func TestPAY003AndID002AndID003_CreateValidationHappensBeforeNetwork(t *testing.
 		{name: "invalid duration", mutate: func(r *CreateCashierOrderRequest) { r.PaymentValidMinutes = 31 }},
 		{name: "invalid date", mutate: func(r *CreateCashierOrderRequest) { r.ShopDate = "20260230" }},
 		{name: "missing callback", mutate: func(r *CreateCashierOrderRequest) { r.BackURL = "" }},
+		{name: "invalid h5 routing", mutate: func(r *CreateCashierOrderRequest) { r.H5Join = " h5" }},
+		{name: "invalid app type", mutate: func(r *CreateCashierOrderRequest) { r.AppType = "app\n" }},
 	}
 	for _, test := range tests {
 		req := validCreateRequest(PaymentModeAlipay)

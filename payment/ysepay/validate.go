@@ -87,3 +87,7 @@ func validLength(value string, minimum, maximum int) bool {
 	length := utf8.RuneCountInString(value)
 	return length >= minimum && length <= maximum
 }
+
+func validOptionalRoutingValue(value string) bool {
+	return value == "" || (strings.TrimSpace(value) == value && !strings.ContainsAny(value, "\x00\r\n"))
+}

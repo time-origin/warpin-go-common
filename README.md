@@ -120,6 +120,10 @@ order, err := client.CreateCashierOrder(ctx, ysepay.CreateCashierOrderRequest{
 	PaymentValidMinutes: 30,
 	BackURL:             appConfig.PublicBaseURL + "/payment/ysepay/notify",
 	PayMode:             ysepay.PaymentModeAlipay,
+	// H5Join and AppType are supplied by Ysepay for the merchant's enabled
+	// H5 cashier scene. Leave them empty for the existing native flow.
+	H5Join:              appConfig.Ysepay.H5Join,
+	AppType:             appConfig.Ysepay.AppType,
 })
 ```
 

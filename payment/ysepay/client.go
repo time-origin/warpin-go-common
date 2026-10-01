@@ -82,6 +82,8 @@ type createOrderBusiness struct {
 	RepeatPayment       string          `json:"isRepeatPay,omitempty"`
 	FastPay             string          `json:"isFastPay,omitempty"`
 	MerchantHomeURL     string          `json:"mercHomeUrl,omitempty"`
+	H5Join              string          `json:"h5Join,omitempty"`
+	AppType             string          `json:"appType,omitempty"`
 }
 
 func (c *Client) CreateCashierOrder(ctx context.Context, request CreateCashierOrderRequest) (CreateCashierOrderResult, error) {
@@ -99,7 +101,7 @@ func (c *Client) CreateCashierOrder(ctx context.Context, request CreateCashierOr
 		PaymentValidMinutes: strconv.Itoa(request.PaymentValidMinutes), Currency: "CNY", Note: request.Note,
 		BackURL: request.BackURL, LimitPay: string(request.LimitPay), PayMode: string(request.PayMode),
 		Detail: request.Detail, StoreID: request.StoreID, BuyerRealName: request.BuyerRealName,
-		MerchantHomeURL: request.MerchantHomeURL,
+		MerchantHomeURL: request.MerchantHomeURL, H5Join: request.H5Join, AppType: request.AppType,
 	}
 	if request.AllowRepeatPayment != nil {
 		if *request.AllowRepeatPayment {
@@ -157,6 +159,9 @@ func validateCreateRequest(request CreateCashierOrderRequest) error {
 	}
 	if !validCallbackURLs(request.BackURL) || (request.MerchantHomeURL != "" && !validHTTPURL(request.MerchantHomeURL)) {
 		return fmt.Errorf("%w: invalid callback or merchant URL", ErrInvalidRequest)
+	}
+	if !validOptionalRoutingValue(request.H5Join) || !validOptionalRoutingValue(request.AppType) {
+		return fmt.Errorf("%w: invalid H5 routing value", ErrInvalidRequest)
 	}
 	if request.MessageCode != "" && request.MessageCode != "S3001" && request.MessageCode != "S3002" {
 		return fmt.Errorf("%w: unsupported message code", ErrInvalidRequest)

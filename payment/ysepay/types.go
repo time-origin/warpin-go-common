@@ -65,6 +65,10 @@ type CreateCashierOrderRequest struct {
 	AllowRepeatPayment  *bool
 	FastPay             bool
 	MerchantHomeURL     string
+	// H5Join and AppType are optional routing values assigned by Ysepay for
+	// the payee merchant. They are forwarded unchanged when configured.
+	H5Join  string
+	AppType string
 }
 
 type CreateCashierOrderResult struct {
