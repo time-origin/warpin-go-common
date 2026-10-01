@@ -28,8 +28,8 @@ to a service, or circular module dependencies.
 
 ## Consumption and releases
 
-These new modules are not published yet. After publishing the selected module,
-a consumer can install only that module and its transitive dependencies:
+The initial release uses `v0.1.0` for each module. A consumer can install
+only the selected module and its transitive dependencies:
 
 ```bash
 go get github.com/time-origin/warpin-go-common/warpin-payment@v0.1.0
@@ -44,10 +44,10 @@ Packages inside one module still share its go.mod dependency graph: for example,
 warpin-utils currently groups Excel and archive helpers with other utilities.
 
 Version tags must include the module directory: `warpin-payment/v0.1.0`,
-`warpin-errors/v0.1.0`, and so on. Internal HTTP dependencies provisionally use
-`v0.1.0`; publish errors first, HTTP second, Hertz third, or publish all matching
-tags together. Every module must ship its own LICENSE. No release or push is
-implied by this local migration.
+`warpin-errors/v0.1.0`, and so on. Internal HTTP dependencies use `v0.1.0`. The initial release publishes all
+ten matching module tags together. Future releases must provide compatible
+errors and HTTP versions before their dependents. Every module ships its own
+LICENSE. Existing root-module release tags remain unchanged.
 
 The old root module is removed on this branch. Previously published root-module
 versions, including v0.6.0, remain usable. To upgrade, change imports using the
@@ -58,9 +58,8 @@ No duplicate compatibility implementations are maintained.
 ## Local development
 
 Root `go.work` lists all ten modules and resolves their local sources without
-adding replace directives to production go.mod files. During this unpublished
-phase, version-specific replacements for errors and HTTP live only in go.work
-to resolve their provisional v0.1.0 graph edges locally. Business consumers use
+adding replace directives to production go.mod files. Version-specific replacements for errors and HTTP live only in go.work
+to resolve their v0.1.0 graph edges locally during joint development. Business consumers use
 their own go.mod and do not need this workspace.
 
 ```bash
@@ -214,6 +213,6 @@ The script packages local modules into a temporary file proxy, checks temporary
 source copies with GOWORK=off, and removes its proxy, module cache and synthetic
 checksums afterwards. External dependencies are reused from the existing Go
 download cache where available. No replacement or unpublished-module checksum
-is written into the source modules. This validates independent dependency
-resolution before release; it does not verify remote publication or a live
-payment gateway. After publication, also test against the actual released tags.
+is written into the source modules. This validates independent dependency resolution from the current sources;
+it does not verify remote publication or a live payment gateway. Remote release
+verification is recorded in [.docs/module-release-v0.1.0-2026-10-01.md](.docs/module-release-v0.1.0-2026-10-01.md).

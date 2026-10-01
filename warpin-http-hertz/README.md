@@ -3,7 +3,7 @@
 Native Hertz helpers under response; shares warpin-http/result and warpin-errors.
 
 Module path: `github.com/time-origin/warpin-go-common/warpin-http-hertz`.
-Release tags: `warpin-http-hertz/vX.Y.Z`. The initial `v0.1.0` is not published yet.
+Release tags: `warpin-http-hertz/vX.Y.Z`. The initial release version is `v0.1.0`.
 
 For local development, run `go test ./...` here with the root workspace enabled.
 For independent checks before publication, run from the repository root:
