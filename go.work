@@ -1,0 +1,18 @@
+go 1.27.1
+
+use (
+	./warpin-auth
+	./warpin-database
+	./warpin-errors
+	./warpin-http
+	./warpin-http-hertz
+	./warpin-mail
+	./warpin-object-storage
+	./warpin-payment
+	./warpin-types
+	./warpin-utils
+)
+
+replace github.com/time-origin/warpin-go-common/warpin-errors v0.1.0 => ./warpin-errors
+
+replace github.com/time-origin/warpin-go-common/warpin-http v0.1.0 => ./warpin-http
