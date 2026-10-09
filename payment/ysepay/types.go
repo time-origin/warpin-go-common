@@ -26,6 +26,16 @@ const (
 	BusinessCodeStandard BusinessCode = "00510103"
 )
 
+// H5Join selects the Ysepay H5 cashier entry confirmed by the supplier.
+// Empty means the field is omitted and the request matches the v0.6.0 payload.
+type H5Join string
+
+const (
+	H5JoinAlipayLifeAccount       H5Join = "01"
+	H5JoinWeChatOfficialAccount   H5Join = "02"
+	H5JoinWeChatMiniProgram       H5Join = "03"
+)
+
 // LimitPay controls credit-based payment methods in the cashier.
 type LimitPay string
 
@@ -56,6 +66,7 @@ type CreateCashierOrderRequest struct {
 	PaymentValidMinutes int
 	BackURL             string
 	PayMode             PaymentMode
+	H5Join              H5Join
 	MessageCode         string
 	LimitPay            LimitPay
 	Note                string

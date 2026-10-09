@@ -76,6 +76,7 @@ type createOrderBusiness struct {
 	BackURL             string          `json:"backUrl"`
 	LimitPay            string          `json:"limitPay,omitempty"`
 	PayMode             string          `json:"payMode"`
+	H5Join              string          `json:"h5Join,omitempty"`
 	Detail              json.RawMessage `json:"detail,omitempty"`
 	StoreID             string          `json:"storeId,omitempty"`
 	BuyerRealName       string          `json:"buyerRealname,omitempty"`
@@ -98,6 +99,7 @@ func (c *Client) CreateCashierOrder(ctx context.Context, request CreateCashierOr
 		BusinessCode: string(request.BusinessCode), ShopDate: request.ShopDate, Amount: amount,
 		PaymentValidMinutes: strconv.Itoa(request.PaymentValidMinutes), Currency: "CNY", Note: request.Note,
 		BackURL: request.BackURL, LimitPay: string(request.LimitPay), PayMode: string(request.PayMode),
+		H5Join: string(request.H5Join),
 		Detail: request.Detail, StoreID: request.StoreID, BuyerRealName: request.BuyerRealName,
 		MerchantHomeURL: request.MerchantHomeURL,
 	}
@@ -151,6 +153,9 @@ func validateCreateRequest(request CreateCashierOrderRequest) error {
 	}
 	if request.PayMode != PaymentModeAlipay && request.PayMode != PaymentModeWeChatMiniProgram {
 		return fmt.Errorf("%w: unsupported payment mode", ErrInvalidRequest)
+	}
+	if request.H5Join != "" && request.H5Join != H5JoinAlipayLifeAccount && request.H5Join != H5JoinWeChatOfficialAccount && request.H5Join != H5JoinWeChatMiniProgram {
+		return fmt.Errorf("%w: unsupported h5Join", ErrInvalidRequest)
 	}
 	if request.AmountFen <= 0 || request.AmountFen > 9_999_999_999 || request.PaymentValidMinutes < 1 || request.PaymentValidMinutes > 30 || !validShopDate(request.ShopDate) {
 		return fmt.Errorf("%w: invalid amount, validity, or shop date", ErrInvalidRequest)

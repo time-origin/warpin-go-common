@@ -120,11 +120,15 @@ order, err := client.CreateCashierOrder(ctx, ysepay.CreateCashierOrderRequest{
 	PaymentValidMinutes: 30,
 	BackURL:             appConfig.PublicBaseURL + "/payment/ysepay/notify",
 	PayMode:             ysepay.PaymentModeAlipay,
+	H5Join:              ysepay.H5JoinAlipayLifeAccount,
 })
 ```
 
 Use `PaymentModeAlipay` (`26`) for the aggregated cashier Alipay WebView flow and
 `PaymentModeWeChatMiniProgram` (`29`) for the WeChat cashier Mini Program.
+Set `H5Join` only when the supplier-confirmed H5 entry is required:
+`01` Alipay life account, `02` WeChat official account, `03` WeChat mini program.
+An empty value is omitted and keeps the previous payload.
 The create-order response may contain `PayURL`, `EncryptedData`, or both;
 for WeChat, pass the verified `BusinessData` to the mobile integration as
 described by Ysepay. `CashierAppID` is returned when present but is not required.

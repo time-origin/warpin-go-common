@@ -69,6 +69,40 @@ func TestBDD_PAY_001To003_CreateCashierOrderMapsBothIdentitiesAndChannels(t *tes
 			if _, exists := business["appType"]; exists {
 				t.Fatal("undocumented appType must not be sent")
 			}
+			if _, exists := business["h5Join"]; exists {
+				t.Fatal("empty h5Join must be omitted")
+			}
+		})
+	}
+}
+
+func TestCreateCashierOrderSerializesConfirmedH5JoinValues(t *testing.T) {
+	t.Parallel()
+	for _, join := range []H5Join{H5JoinAlipayLifeAccount, H5JoinWeChatOfficialAccount, H5JoinWeChatMiniProgram} {
+		join := join
+		t.Run(string(join), func(t *testing.T) {
+			t.Parallel()
+			client, gateway := newGatewayClient(t, func(method string, _ map[string]any) (string, any) {
+				if method != "order.createOrder" {
+					t.Fatalf("method = %q", method)
+				}
+				return "0", map[string]any{
+					"reqMsgId": "REQUEST_001", "amount": "101", "mercId": "PAYEE_TEST",
+					"orderId": "ORDER_20260903_001", "payUrl": "https://cashier.example/pay",
+					"encryData": "client-data",
+				}
+			})
+			request := validCreateRequest(PaymentModeAlipay)
+			request.H5Join = join
+			if _, err := client.CreateCashierOrder(context.Background(), request); err != nil {
+				t.Fatalf("CreateCashierOrder() error = %v", err)
+			}
+			gateway.mu.Lock()
+			business := gateway.businesses[0]
+			gateway.mu.Unlock()
+			if business["h5Join"] != string(join) {
+				t.Fatalf("h5Join = %#v", business["h5Join"])
+			}
 		})
 	}
 }
@@ -162,6 +196,7 @@ func TestPAY003AndID002AndID003_CreateValidationHappensBeforeNetwork(t *testing.
 		{name: "invalid duration", mutate: func(r *CreateCashierOrderRequest) { r.PaymentValidMinutes = 31 }},
 		{name: "invalid date", mutate: func(r *CreateCashierOrderRequest) { r.ShopDate = "20260230" }},
 		{name: "missing callback", mutate: func(r *CreateCashierOrderRequest) { r.BackURL = "" }},
+		{name: "unsupported h5Join", mutate: func(r *CreateCashierOrderRequest) { r.H5Join = "1" }},
 	}
 	for _, test := range tests {
 		req := validCreateRequest(PaymentModeAlipay)
